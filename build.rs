@@ -13,7 +13,7 @@ fn main() -> io::Result<()> {
     })?;
 
   let pkg_ver = env::var("CARGO_PKG_VERSION").unwrap();
-  let full_ver = format!("{pkg_ver}_{git_hash}");
+  let full_ver = format!("{pkg_ver}{git_hash}");
   println!(
     "cargo:rustc-env=FULL_VERSION={full_ver}" // unique version
   );
