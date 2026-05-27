@@ -1,0 +1,4 @@
+[package]
+name = "given-num"
+version = "0.1.0-dev"
+edition = "2024"

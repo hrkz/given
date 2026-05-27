@@ -1,0 +1,55 @@
+[package]
+name = "given"
+version = "0.1.0-dev"
+edition = "2024"
+description = "mathematical reasoning on equivalence graphs"
+keywords = ["reasoning", "rewriting", "equivalence", "graph"]
+authors = ["hrkz <hugo.frezat@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+homepage = "https://hrkz.github.io/projects/given/"
+repository = "https://github.com/hrkz/given/"
+
+[dependencies]
+given-macros = { path = "ws/given-macros" }
+given-num = { path = "ws/given-num", optional = true }
+
+rustc-hash = "*"
+
+[lib]
+name = "given"
+
+[workspace]
+resolver = "3"
+members = [
+	"ws/given-bind",
+	"ws/given-macros",
+	"ws/given-num",
+]
+
+[features]
+default = []
+
+# Parsing, validation and generation of symbolic expressions (terms).
+lang = []
+# Explaining and analysing rewriting paths..
+path = []
+
+[[bin]]
+name = "given"
+path = "bin/main.rs"
+
+[[example]]
+name = "bool"
+path = "examples/bool.rs"
+[[example]]
+name = "elem"
+path = "examples/elem.rs"
+[[example]]
+name = "prog"
+path = "examples/prog.rs"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs", "--no-deps"]
+all-features = true

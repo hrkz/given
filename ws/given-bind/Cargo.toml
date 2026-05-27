@@ -1,0 +1,7 @@
+[package]
+name = "given-bind"
+version = "0.1.0-dev"
+edition = "2024"
+
+[dependencies]
+given = { path = "../../" }
