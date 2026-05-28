@@ -198,7 +198,6 @@ impl fmt::Display for Expr {
 
 fn main() {
   let x = Expr::var("x");
-	println!("x = {x:?}");
   let e1 = x.clone().or(x.not());
   println!("e1 = {e1}");
   let e2 = e1.clone().not().and(e1.clone().not()).not();
