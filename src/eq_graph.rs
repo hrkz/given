@@ -168,7 +168,7 @@ where
     cur_id: HirId,
   ) -> T {
     assert!(cur_id.0 < self.parent.len());
-    T::map(self[cur_id].clone(), |sub| self.inst(sub)).into()
+    T::inst(T::map(self[cur_id].clone(), |sub| self.inst(sub)))
   }
 
   /// Lower an expression into IR.
@@ -177,7 +177,7 @@ where
     &mut self,
     expr: T,
   ) -> HirId {
-    let hir_ty = T::map(expr.into(), |sub| self.lower(sub));
+    let hir_ty = T::map(expr.lower(), |sub| self.lower(sub));
     self.insert(
       hir_ty, // ty ∈ graph
     )

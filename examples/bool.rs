@@ -1,63 +1,122 @@
 /// A demo for Boolean algebra.
 use std::collections::HashMap;
 use std::fmt;
+use std::ops;
 use std::rc::Rc;
 
 use given::*;
-use given_macros::expr_impl;
 
-#[expr_impl(Bool)]
+/// "Flat" AST
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum Expr<Node> {
-  /// A boolean value (i.e., true or false)
-  Value(bool),
-  /// A variable.
+pub enum Bool<Node> {
+  /// A boolean literal (true / false).
+  Lit(bool),
+  /// A boolean variable
+  ///
+  /// Denoted e.g., ?x by convention.
   Var(Rc<str>),
-
-  /// A negation `¬`.
+  /// A logical negation (`¬a`).
   Not(Node),
-  /// A conjunction `∧`.
+  /// A logical conjunction (`a ∧ b`).
   And(Node, Node),
-  /// A disjunction `∨`.
+  /// A logical disjunction (`a ∨ b`).
   Or(Node, Node),
 }
 
-impl Bool {
-  /// Create a new boolean value.
-  pub fn value(value: bool) -> Self {
-    Self::from(Expr::Value(value))
+/// Ast structure helper.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct Ast(Box<Expr>);
+/// "Full" AST
+type Expr = Bool<Ast>;
+
+impl Expr {
+  /// Literal `value`.
+  pub fn lit(value: bool) -> Self {
+    Self::Lit(value)
   }
 
-  /// Create a new variable.
-  pub fn variable(name: &str) -> Self {
-    Self::from(Expr::Var(Rc::from(name)))
+  /// Variable `symbol`.
+  pub fn var(symbol: &str) -> Self {
+    Self::Var(Rc::from(symbol))
   }
 
-  /// Generate ¬`self`.
+  /// Logical negation `¬a`.
   pub fn not(self) -> Self {
-    Self::from(Expr::Not(self))
+    Self::Not(Ast(Box::new(self)))
   }
 
-  /// Generate `self` ∧ `o`.
+  /// Logical conjunction `a ∧ b`.
   pub fn and(self, o: Self) -> Self {
-    Self::from(Expr::And(self, o))
+    Self::And(Ast(Box::new(self)), Ast(Box::new(o)))
   }
 
-  /// Generate `self` ∨ `o`.
+  /// Logical disjunction `a ∨ b`.
   pub fn or(self, o: Self) -> Self {
-    Self::from(Expr::Or(self, o))
+    Self::Or(Ast(Box::new(self)), Ast(Box::new(o)))
+  }
+
+  /// Material implication:
+  /// `a → b = ¬a ∨ b`
+  pub fn imply(self, o: Self) -> Self {
+    self.not().or(o)
+  }
+
+  /// Material equivalence:
+  /// `a ↔ b = (a ∧ b) ∨ (¬a ∧ ¬b)`
+  pub fn equiv(self, o: Self) -> Self {
+    self.clone().and(o.clone()).or(self.not().and(o.not()))
+  }
+
+  /// Exclusive or:
+  /// `a ⊕ b = (a ∨ b) ∧ ¬(a ∧ b)`
+  pub fn xor(self, o: Self) -> Self {
+    self.clone().or(o.clone()).and(self.and(o).not())
   }
 }
 
-impl Bool {
+impl Type for Expr {
+  type Term<Node> = Bool<Node>;
+
+  fn map<F, T>(
+    // term -> f(term)
+    term: Self::Term<F>,
+    mut f: impl FnMut(F) -> T,
+  ) -> Self::Term<T> {
+    use Bool::*;
+    match term {
+      Lit(value) => Lit(value),
+      Var(symbol) => Var(symbol),
+
+      Not(arg) => Not(f(arg)),
+      And(lhs, rhs) => And(f(lhs), f(rhs)),
+      Or(lhs, rhs) => Or(f(lhs), f(rhs)),
+    }
+  }
+
+  fn lower(
+    // expr -> term
+    self,
+  ) -> Self::Term<Self> {
+    return Expr::map(self, |f| *f.0);
+  }
+
+  fn inst(
+    // term -> expr
+    term: Self::Term<Self>,
+  ) -> Self {
+    return Expr::map(term, |f| Ast(Box::new(f)));
+  }
+}
+
+impl Expr {
   pub fn eval(
-    // Var -> Value
+    // Var -> Lit
     &self,
     env: &HashMap<Rc<str>, bool>,
   ) -> bool {
-    use Expr::*;
-    match self.as_ref() {
-      Value(value) => *value,
+    use Bool::*;
+    match self {
+      Lit(lit) => *lit,
       Var(ident) => env[ident],
 
       Not(arg) => !arg.eval(env),
@@ -72,30 +131,30 @@ impl Bool {
     // Format using precedence (default: 0)
     parent_prec: u8,
   ) -> fmt::Result {
-    use Expr::*;
+    use Bool::*;
 
-    fn precedence(expr: &Expr<Bool>) -> u8 {
-      match expr {
-        Or(_, _) => 1,
-        And(_, _) => 2,
+    fn precedence(kind: &Expr) -> u8 {
+      match kind {
+        And(..) => 1,
+        Or(..) => 2,
         Not(_) => 3,
-        Value(_) | Var(_) => 4,
+        Lit(_) | Var(_) => 4,
       }
     }
 
-    let cur_prec = precedence(self.as_ref());
+    let cur_prec = precedence(&self);
     let req_pars = cur_prec < parent_prec;
     if req_pars {
       write!(f, "(")?;
     }
 
-    match self.as_ref() {
-      Value(value) => {
-        write!(f, "{value}")?;
+    match &self {
+      Lit(lit) => {
+        write!(f, "{lit}")?;
       }
 
-      Var(name) => {
-        write!(f, "{name}")?;
+      Var(ident) => {
+        write!(f, "?{ident}")?;
       }
 
       Not(arg) => {
@@ -124,39 +183,27 @@ impl Bool {
   }
 }
 
-impl Type for Bool {
-  type Term<Node> = Expr<Node>;
-
-  fn map<F, T>(
-    // term -> f(term)
-    term: Self::Term<F>,
-    mut f: impl FnMut(F) -> T,
-  ) -> Self::Term<T> {
-    use Expr::*;
-    match term {
-      Value(value) => Value(value),
-      Var(ident) => Var(ident),
-
-      Not(arg) => Not(f(arg)),
-      And(lhs, rhs) => And(f(lhs), f(rhs)),
-      Or(lhs, rhs) => Or(f(lhs), f(rhs)),
-    }
+impl ops::Deref for Ast {
+  type Target = Expr;
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 
-impl fmt::Display for Bool {
+impl fmt::Display for Expr {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
     self.fmt_with_prec(f, 0)
   }
 }
 
 fn main() {
-  let x = Bool::variable("x");
+  let x = Expr::var("x");
+	println!("x = {x:?}");
   let e1 = x.clone().or(x.not());
-  println!("e1 = {e1}.");
+  println!("e1 = {e1}");
   let e2 = e1.clone().not().and(e1.clone().not()).not();
-  println!("e2 = {e2}.");
-  let e3 = Bool::value(true);
+  println!("e2 = {e2}");
+  let e3 = Expr::lit(true);
   let mut graph = Graph::new();
   let id_e1 = graph.lower(e1.clone());
   let id_e2 = graph.lower(e2.clone());

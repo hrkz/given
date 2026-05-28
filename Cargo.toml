@@ -12,7 +12,6 @@ homepage = "https://hrkz.github.io/projects/given/"
 repository = "https://github.com/hrkz/given/"
 
 [dependencies]
-given-macros = { path = "ws/given-macros" }
 given-num = { path = "ws/given-num", optional = true }
 
 rustc-hash = "*"
@@ -24,7 +23,6 @@ name = "given"
 resolver = "3"
 members = [
 	"ws/given-bind",
-	"ws/given-macros",
 	"ws/given-num",
 ]
 
