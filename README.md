@@ -29,11 +29,8 @@ cargo run --example name
 For now, Given only runs on nightly Rust but should build just fine on stable once some features are stabilized. 
 The standard cargo `fmt`, `clippy` and `test` workflow is available.
 
-## In-progress content
+## Contributions
 
-> [!IMPORTANT]
-> **The objective is to provide a standard CLI executable and a web demo as soon as possible, but also:**
+Contributions are always welcome. However, since the project is still in an exploratory stage and its long-term direction is not yet fully defined, submitted pull requests may not necessarily be merged immediately.
 
-* A full documentation.
-* An open markdown containing notes.
-* A community channel.
+If you are interested in contributing to the ideas explored in Given, consider reaching out first to discuss the proposed changes.
